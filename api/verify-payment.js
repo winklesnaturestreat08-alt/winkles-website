@@ -1,16 +1,31 @@
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ verified: false });
+    return res.status(405).json({
+      verified: false,
+      message: 'Method not allowed'
+    });
   }
 
-  const { reference, expectedAmount } = req.body || {};
+  let body = req.body;
 
-  if (
-    !reference ||
-    !Number.isFinite(Number(expectedAmount)) ||
-    Number(expectedAmount) <= 0
-  ) {
-    return res.status(400).json({ verified: false });
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (error) {
+      return res.status(400).json({
+        verified: false,
+        message: 'Invalid request'
+      });
+    }
+  }
+
+  const { reference } = body || {};
+
+  if (!reference) {
+    return res.status(400).json({
+      verified: false,
+      message: 'Payment reference missing'
+    });
   }
 
   const key = process.env.PAYSTACK_SECRET_KEY;
@@ -18,7 +33,7 @@ module.exports = async function handler(req, res) {
   if (!key) {
     return res.status(500).json({
       verified: false,
-      message: 'Verification not configured'
+      message: 'Payment verification is not configured'
     });
   }
 
@@ -27,6 +42,7 @@ module.exports = async function handler(req, res) {
       'https://api.paystack.co/transaction/verify/' +
         encodeURIComponent(reference),
       {
+        method: 'GET',
         headers: {
           Authorization: 'Bearer ' + key
         }
@@ -34,18 +50,18 @@ module.exports = async function handler(req, res) {
     );
 
     const data = await response.json();
-    const expectedKobo = Math.round(Number(expectedAmount) * 100);
 
-    const verified =
-      response.ok &&
-      data.status === true &&
-      data.data &&
-      data.data.status === 'success' &&
-      data.data.currency === 'NGN' &&
-      Number(data.data.amount) === expectedKobo;
-
-    if (!verified) {
-      return res.status(400).json({ verified: false });
+    if (
+      !response.ok ||
+      data.status !== true ||
+      !data.data ||
+      data.data.status !== 'success' ||
+      data.data.currency !== 'NGN'
+    ) {
+      return res.status(400).json({
+        verified: false,
+        message: 'Payment could not be verified'
+      });
     }
 
     return res.status(200).json({
@@ -55,6 +71,9 @@ module.exports = async function handler(req, res) {
       currency: data.data.currency
     });
   } catch (error) {
-    return res.status(500).json({ verified: false });
+    return res.status(500).json({
+      verified: false,
+      message: 'Payment verification service error'
+    });
   }
 };
