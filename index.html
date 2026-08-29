@@ -1245,7 +1245,13 @@ i<!DOCTYPE html>
   .hero-img-grid img:nth-child(1) { right: 66%; filter: brightness(0.75) saturate(1.1); }
   .hero-img-grid img:nth-child(2) { right: 33%; filter: brightness(0.75) saturate(1.1); }
   .hero-img-grid img:nth-child(3) { right: 0; filter: brightness(0.75) saturate(1.1); }
-
+  .hero-img-grid img:nth-child(2),
+  .hero-img-grid img:nth-child(3) {
+    display:none;}
+  .hero-img-grid img:nth-child(1) {
+    width: 100%;
+    right: 0;
+  }
   .hero-img-overlay {
     position: absolute;
     inset: 0;
